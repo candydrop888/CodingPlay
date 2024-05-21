@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+contract SimpleDeFi {
+    using SafeMath for uint256;
+
+    mapping(address => uint256) public balances;
+    mapping(address => mapping(address => uint256)) public allowances;
+
+    event Deposit(address indexed account, uint256 amount);
+    event Withdraw(address indexed account, uint256 amount);
+    event Borrow(address indexed borrower, uint256 amount);
+    event Repay(address indexed borrower, uint256 amount);
+
+    function deposit(address token, uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        balances[msg.sender] = balances[msg.sender].add(amount);
+
+        emit Deposit(msg.sender, amount);
+    }
+
+    function withdraw(address token, uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+
+        IERC20(token).transfer(msg.sender, amount);
+        balances[msg.sender] = balances[msg.sender].sub(amount);
+
+        emit Withdraw(msg.sender, amount);
+    }
+
+    function borrow(address token, uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(balances[msg.sender] == 0, "You can only borrow if you have no funds deposited");
+
+        IERC20(token).transfer(msg.sender, amount);
+        balances[msg.sender] = balances[msg.sender].add(amount);
+
+        emit Borrow(msg.sender, amount);
+    }
+
+    function repay(address token, uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(balances[msg.sender] >= amount, "Insufficient balance to repay");
+
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        balances[msg.sender] = balances[msg.sender].sub(amount);
+
+        emit Repay(msg.sender, amount);
+    }
+}
